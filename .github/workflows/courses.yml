@@ -1,12 +1,12 @@
-name: Telegram Bot
+name: Telegram Courses Bot
 
 on:
   schedule:
-    - cron: "0 */3 * * *"
+    - cron: "0 15 * * *"
   workflow_dispatch:
 
 jobs:
-  run-bot:
+  run-courses-bot:
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
@@ -31,10 +31,10 @@ jobs:
       - name: Restore dedup cache
         uses: actions/cache/restore@v4
         with:
-          path: .cache/posted-jobs.json
-          key: posted-jobs-${{ github.ref_name }}-${{ github.run_id }}
+          path: .cache/posted-courses.json
+          key: posted-courses-${{ github.ref_name }}-${{ github.run_id }}
           restore-keys: |
-            posted-jobs-${{ github.ref_name }}-
+            posted-courses-${{ github.ref_name }}-
 
       - name: Validate secrets
         run: |
@@ -52,17 +52,17 @@ jobs:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
           SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
-          SEARCH_QUERY: "desenvolvedor de software brasil"
+          CONTENT_TYPE: "courses"
+          COURSES_QUERY: "curso gratuito ti brasil"
           SEARCH_LOCATION: "Brazil"
-          CONTENT_TYPE: "jobs"
-          MAX_JOBS: "5"
+          MAX_COURSES: "3"
           DRY_RUN: "false"
           SHORTEN_URLS: "true"
-          STATE_FILE: ".cache/posted-jobs.json"
+          STATE_FILE: ".cache/posted-courses.json"
 
       - name: Save dedup cache
         if: always()
         uses: actions/cache/save@v4
         with:
-          path: .cache/posted-jobs.json
-          key: posted-jobs-${{ github.ref_name }}-${{ github.run_id }}
+          path: .cache/posted-courses.json
+          key: posted-courses-${{ github.ref_name }}-${{ github.run_id }}

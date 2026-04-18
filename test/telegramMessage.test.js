@@ -34,3 +34,29 @@ test("montarBotoes cria somente o CTA principal", () => {
     inline_keyboard: [[{ text: "Ver vaga e candidatar-se", url: "https://example.com/vaga" }]],
   });
 });
+
+test("montarMensagem e botoes para curso usam formato proprio", () => {
+  const mensagem = montarMensagem(
+    {
+      tipo: "curso",
+      titulo: "Curso gratuito de JavaScript",
+      plataforma: "Fundacao Bradesco",
+      resumo: "Aprenda JavaScript do zero.",
+    },
+    {
+      socialLinkedin: "https://linkedin.com/in/alanadiastech",
+      socialInstagram: "https://instagram.com/alanadiastech",
+    }
+  );
+
+  const botoes = montarBotoes({
+    tipo: "curso",
+    link: "https://example.com/curso",
+  });
+
+  assert.match(mensagem, /Curso gratuito de TI/);
+  assert.match(mensagem, /Fundacao Bradesco/);
+  assert.deepEqual(botoes, {
+    inline_keyboard: [[{ text: "Acessar curso gratuito", url: "https://example.com/curso" }]],
+  });
+});

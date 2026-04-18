@@ -1,4 +1,5 @@
 const { createConfig, validateConfig } = require("./config");
+const { buscarCursosGratuitos } = require("./providers/freeCourses");
 const { buscarVagasGoogle } = require("./providers/googleJobs");
 const {
   carregarHistorico,
@@ -11,7 +12,9 @@ const { encurtarUrl } = require("./services/urlShortener");
 const { montarMensagem } = require("./formatters/telegramMessage");
 
 function exibirDryRun(vagas, config) {
-  console.log(`DRY_RUN ativo. ${vagas.length} vaga(s) seriam publicadas:\n`);
+  const rotulo =
+    config.contentType === "courses" ? "curso(s)" : "vaga(s)";
+  console.log(`DRY_RUN ativo. ${vagas.length} ${rotulo} seriam publicados:\n`);
 
   for (const [index, vaga] of vagas.entries()) {
     console.log(`--- Vaga ${index + 1} ---`);
@@ -27,6 +30,7 @@ async function run(env = process.env, deps = {}) {
     validateConfigFn = validateConfig,
     carregarHistoricoFn = carregarHistorico,
     buscarVagasGoogleFn = buscarVagasGoogle,
+    buscarCursosGratuitosFn = buscarCursosGratuitos,
     filtrarVagasNovasFn = filtrarVagasNovas,
     salvarHistoricoFn = salvarHistorico,
     encurtarUrlFn = encurtarUrl,
@@ -39,33 +43,48 @@ async function run(env = process.env, deps = {}) {
   validateConfigFn(config);
 
   const historico = await carregarHistoricoFn(config.stateFile);
-  const vagas = await buscarVagasGoogleFn(config);
-  const vagasNovas = filtrarVagasNovasFn(vagas, historico, config.maxJobs);
+  const isCourses = config.contentType === "courses";
+  const itens = isCourses
+    ? await buscarCursosGratuitosFn(config)
+    : await buscarVagasGoogleFn(config);
+  const itensNovos = filtrarVagasNovasFn(
+    itens,
+    historico,
+    isCourses ? config.maxCourses : config.maxJobs
+  );
 
-  if (vagas.length === 0) {
+  if (itens.length === 0) {
     await salvarHistoricoFn(historico, config.stateFile, config.maxHistory);
-    console.log("Nenhuma vaga do Brasil encontrada para a busca atual.");
+    console.log(
+      isCourses
+        ? "Nenhum curso encontrado para a busca atual."
+        : "Nenhuma vaga do Brasil encontrada para a busca atual."
+    );
     return;
   }
 
-  if (vagasNovas.length === 0) {
+  if (itensNovos.length === 0) {
     await salvarHistoricoFn(historico, config.stateFile, config.maxHistory);
-    console.log("Nenhuma vaga nova encontrada. Nada sera publicado.");
+    console.log(
+      isCourses
+        ? "Nenhum curso novo encontrado. Nada sera publicado."
+        : "Nenhuma vaga nova encontrada. Nada sera publicado."
+    );
     return;
   }
 
-  for (const vaga of vagasNovas) {
-    vaga.link = await encurtarUrlFn(vaga.link, config);
+  for (const item of itensNovos) {
+    item.link = await encurtarUrlFn(item.link, config);
   }
 
   if (config.dryRun) {
-    exibirDryRunFn(vagasNovas, config);
+    exibirDryRunFn(itensNovos, config);
     return;
   }
 
-  for (const vaga of vagasNovas) {
-    await enviarTelegramFn(vaga, config);
-    await registrarVagaPublicadaFn(vaga.id, historico, config);
+  for (const item of itensNovos) {
+    await enviarTelegramFn(item, config);
+    await registrarVagaPublicadaFn(item.id, historico, config);
   }
 }
 

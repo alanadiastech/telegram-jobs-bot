@@ -189,13 +189,48 @@ function extrairModelo(vaga) {
   return "Nao informado";
 }
 
+function extrairSenioridade(vaga) {
+  const texto = [
+    vaga.title,
+    vaga.job_title,
+    vaga.description,
+    ...(vaga.extensions || []),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  if (/j[uú]nior|junior|\bjr\b/.test(texto)) return "Junior";
+  if (/trainee/.test(texto)) return "Trainee";
+  if (/est[aá]gio|estagio|intern/.test(texto)) return "Estagio";
+  if (/pleno/.test(texto)) return "Pleno";
+  if (/s[eê]nior|senior|\bsr\b/.test(texto)) return "Senior";
+
+  return "Nao informado";
+}
+
+function calcularPrioridade(parsedJob) {
+  const senioridadeJunior =
+    parsedJob.senioridade === "Junior" ||
+    parsedJob.senioridade === "Trainee" ||
+    parsedJob.senioridade === "Estagio";
+  const remoto = parsedJob.modelo === "Remoto";
+
+  if (remoto && senioridadeJunior) return 3;
+  if (remoto) return 2;
+  if (senioridadeJunior) return 1;
+
+  return 0;
+}
+
 function parseJob(vaga, context) {
-  return {
+  const parsedJob = {
     id: gerarFingerprint(vaga),
     titulo: normalizarTexto(vaga.title),
     empresa: normalizarTexto(vaga.company_name),
     local: normalizarTexto(vaga.location),
     modelo: extrairModelo(vaga),
+    senioridade: extrairSenioridade(vaga),
     publicado: normalizarTexto(
       vaga.detected_extensions?.posted_at ||
         (vaga.extensions || []).find((item) => /ago|hora|dia|semana|mes/i.test(item)),
@@ -203,9 +238,15 @@ function parseJob(vaga, context) {
     ),
     link: extrairLink(vaga, context.googleJobsUrl, context.searchQuery),
   };
+
+  parsedJob.prioridade = calcularPrioridade(parsedJob);
+
+  return parsedJob;
 }
 
 module.exports = {
+  calcularPrioridade,
+  extrairSenioridade,
   parseJob,
   vagaEhDoBrasil,
 };

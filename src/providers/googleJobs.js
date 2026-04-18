@@ -28,7 +28,8 @@ async function buscarVagasGoogle(config, client = axios) {
         googleJobsUrl,
         searchQuery: config.searchQuery,
       })
-    );
+    )
+    .sort((a, b) => b.prioridade - a.prioridade);
 }
 
 module.exports = {

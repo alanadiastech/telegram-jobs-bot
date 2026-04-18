@@ -1,0 +1,17 @@
+{
+  "name": "telegram-jobs-bot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Bot para publicar vagas de TI no Telegram com busca no Google Jobs.",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "check": "node --check index.js"
+  },
+  "dependencies": {
+    "axios": "^1.13.1"
+  }
+}

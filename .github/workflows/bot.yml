@@ -14,12 +14,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: "pnpm"
+          cache-dependency-path: "pnpm-lock.yaml"
 
-      - run: npm install axios
+      - run: pnpm install --frozen-lockfile
+
+      - name: Restore dedup cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache/posted-jobs.json
+          key: posted-jobs-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: |
+            posted-jobs-${{ github.ref_name }}-
 
       - name: Validate secrets
         run: |
@@ -32,7 +47,7 @@ jobs:
           SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
 
       - name: Run bot
-        run: node index.js
+        run: pnpm start
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
@@ -42,3 +57,11 @@ jobs:
           MAX_JOBS: "5"
           DRY_RUN: "false"
           SHORTEN_URLS: "true"
+          STATE_FILE: ".cache/posted-jobs.json"
+
+      - name: Save dedup cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .cache/posted-jobs.json
+          key: posted-jobs-${{ github.ref_name }}-${{ github.run_id }}

@@ -111,11 +111,9 @@ pnpm install
   - padrão para cursos: `.cache/posted-courses.json`
 - `MAX_HISTORY`
   - padrão: `500`
-
-### Redes sociais
-
-- `SOCIAL_LINKEDIN`
-- `SOCIAL_INSTAGRAM`
+ 
+### Canal do Telegram para exemplo
+https://t.me/ti_oportunidades
 
 ## Como rodar localmente
 

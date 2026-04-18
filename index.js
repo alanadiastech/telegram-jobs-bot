@@ -7,6 +7,7 @@ const SEARCH_QUERY =
   process.env.SEARCH_QUERY || "desenvolvedor de software brasil";
 const SEARCH_LOCATION = process.env.SEARCH_LOCATION || "Brazil";
 const MAX_JOBS = Number(process.env.MAX_JOBS || 5);
+const DRY_RUN = process.env.DRY_RUN === "true";
 const SHORTEN_URLS = process.env.SHORTEN_URLS !== "false";
 const TERMOS_BRASIL = [
   "brasil",
@@ -215,8 +216,18 @@ async function enviarTelegram(msg) {
   });
 }
 
+function exibirDryRun(vagas) {
+  console.log(`DRY_RUN ativo. ${vagas.length} vaga(s) seriam publicadas:\n`);
+
+  vagas.forEach((vaga, index) => {
+    console.log(`--- Vaga ${index + 1} ---`);
+    console.log(montarMensagem(vaga));
+    console.log("");
+  });
+}
+
 async function run() {
-  if (!BOT_TOKEN || !CHAT_ID) {
+  if (!DRY_RUN && (!BOT_TOKEN || !CHAT_ID)) {
     throw new Error("Defina BOT_TOKEN e CHAT_ID antes de executar o bot.");
   }
 
@@ -229,6 +240,14 @@ async function run() {
 
   for (const vaga of vagas) {
     vaga.link = await encurtarUrl(vaga.link);
+  }
+
+  if (DRY_RUN) {
+    exibirDryRun(vagas);
+    return;
+  }
+
+  for (const vaga of vagas) {
     await enviarTelegram(montarMensagem(vaga));
   }
 }

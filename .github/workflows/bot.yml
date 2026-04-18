@@ -40,4 +40,5 @@ jobs:
           SEARCH_QUERY: "desenvolvedor de software brasil"
           SEARCH_LOCATION: "Brazil"
           MAX_JOBS: "5"
+          DRY_RUN: "false"
           SHORTEN_URLS: "true"

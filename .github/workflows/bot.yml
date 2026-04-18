@@ -55,7 +55,7 @@ jobs:
           SEARCH_QUERY: "desenvolvedor de software brasil"
           SEARCH_LOCATION: "Brazil"
           MAX_JOBS: "5"
-          MAX_HISTORY: "500"
+          DRY_RUN: "false"
           SHORTEN_URLS: "true"
           STATE_FILE: ".cache/posted-jobs.json"
 

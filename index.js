@@ -9,10 +9,16 @@ const SEARCH_QUERY =
   process.env.SEARCH_QUERY || "desenvolvedor de software brasil";
 const SEARCH_LOCATION = process.env.SEARCH_LOCATION || "Brazil";
 const MAX_JOBS = Number(process.env.MAX_JOBS || 5);
+const MAX_HISTORY = Number(process.env.MAX_HISTORY || 500);
 const DRY_RUN = process.env.DRY_RUN === "true";
 const SHORTEN_URLS = process.env.SHORTEN_URLS !== "false";
 const STATE_FILE =
   process.env.STATE_FILE || path.join(".cache", "posted-jobs.json");
+const SOCIAL_LINKEDIN =
+  process.env.SOCIAL_LINKEDIN || "https://www.linkedin.com/in/alanadiastech/";
+const SOCIAL_INSTAGRAM =
+  process.env.SOCIAL_INSTAGRAM || "https://www.instagram.com/alanadiastech/";
+
 const TERMOS_BRASIL = [
   "brasil",
   "brazil",
@@ -55,6 +61,7 @@ const TERMOS_BRASIL = [
   "amapa",
   "roraima",
 ];
+
 const TERMOS_FORA_BRASIL = [
   "united states",
   "usa",
@@ -255,36 +262,52 @@ async function encurtarUrl(url) {
 function montarMensagem(vaga) {
   return [
     "<b>🚀 Vaga em TI no Brasil</b>",
+    "<i>Oportunidade para a comunidade tech brasileira</i>",
     "",
-    `<b>Cargo:</b> ${escapeHtml(vaga.titulo)}`,
-    `<b>Empresa:</b> ${escapeHtml(vaga.empresa)}`,
-    `<b>Local:</b> ${escapeHtml(vaga.local)}`,
-    `<b>Modelo:</b> ${escapeHtml(vaga.modelo)}`,
-    `<b>Publicada:</b> ${escapeHtml(vaga.publicado)}`,
+    "━━━━━━━━━━━━━━",
+    `<b>💼 Cargo</b>\n${escapeHtml(vaga.titulo)}`,
     "",
-    `<b>Candidatura:</b> ${escapeHtml(vaga.link)}`,
+    `<b>🏢 Empresa</b>\n${escapeHtml(vaga.empresa)}`,
     "",
-    "#Vagas #TI #Brasil",
+    `<b>📍 Local</b>\n${escapeHtml(vaga.local)}`,
+    "",
+    `<b>🧭 Modelo</b>\n${escapeHtml(vaga.modelo)}`,
+    "",
+    `<b>🕒 Publicada</b>\n${escapeHtml(vaga.publicado)}`,
+    "",
+    "━━━━━━━━━━━━━━",
+    "<b>📲 Alan Dias Tech</b>",
+    '<a href="' +
+      escapeHtml(SOCIAL_LINKEDIN) +
+      '">LinkedIn</a> • <a href="' +
+      escapeHtml(SOCIAL_INSTAGRAM) +
+      '">Instagram</a>',
   ].join("\n");
 }
 
-async function enviarTelegram(msg) {
+async function enviarTelegram(vaga) {
   await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
     chat_id: CHAT_ID,
-    text: msg,
+    text: montarMensagem(vaga),
     parse_mode: "HTML",
     disable_web_page_preview: true,
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "Candidatar-se", url: vaga.link }],
+      ],
+    },
   });
 }
 
 function exibirDryRun(vagas) {
   console.log(`DRY_RUN ativo. ${vagas.length} vaga(s) seriam publicadas:\n`);
 
-  vagas.forEach((vaga, index) => {
+  for (const [index, vaga] of vagas.entries()) {
     console.log(`--- Vaga ${index + 1} ---`);
     console.log(montarMensagem(vaga));
+    console.log(`Link: ${vaga.link}`);
     console.log("");
-  });
+  }
 }
 
 async function run() {
@@ -313,12 +336,12 @@ async function run() {
   }
 
   if (DRY_RUN) {
-    exibirDryRun(vagas);
+    exibirDryRun(vagasNovas);
     return;
   }
 
-  for (const vaga of vagas) {
-    await enviarTelegram(montarMensagem(vaga));
+  for (const vaga of vagasNovas) {
+    await enviarTelegram(vaga);
     historico.add(vaga.id);
   }
 

@@ -92,6 +92,16 @@ function normalizarTexto(value, fallback = "Nao informado") {
   return String(value).trim();
 }
 
+function normalizarModelo(value) {
+  const texto = normalizarTexto(value, "").toLowerCase();
+
+  if (/remot/.test(texto)) return "Remoto";
+  if (/h[ií]brid/.test(texto)) return "Hibrido";
+  if (/presencial/.test(texto)) return "Presencial";
+
+  return "";
+}
+
 function slug(value = "") {
   return String(value)
     .normalize("NFD")
@@ -158,6 +168,74 @@ function gerarFingerprint(vaga) {
   return partes.join("|");
 }
 
+function extrairModeloDaDescricao(vaga) {
+  const descricao = normalizarTexto(vaga.description, "");
+
+  if (!descricao) return "";
+
+  const matches = [
+    ...descricao.matchAll(
+      /([A-Za-zÀ-ÿ0-9/(),.\s]+?)\s*[–-]\s*(Presencial|Híbrido|Hibrido|Remoto)/gi
+    ),
+  ];
+
+  if (matches.length === 0) return "";
+
+  const locationSlug = slug(vaga.location);
+  let fallbackOutrasLocalidades = "";
+  const modelosEncontrados = new Set();
+
+  for (const match of matches) {
+    const local = normalizarTexto(match[1], "");
+    const modelo = normalizarModelo(match[2]);
+
+    if (!modelo) continue;
+
+    modelosEncontrados.add(modelo);
+
+    const localSlug = slug(local);
+
+    if (localSlug.includes("outras-localidades")) {
+      fallbackOutrasLocalidades = modelo;
+      continue;
+    }
+
+    if (locationSlug && (localSlug.includes(locationSlug) || locationSlug.includes(localSlug))) {
+      return modelo;
+    }
+  }
+
+  if (fallbackOutrasLocalidades) {
+    return fallbackOutrasLocalidades;
+  }
+
+  if (modelosEncontrados.size === 1) {
+    return Array.from(modelosEncontrados)[0];
+  }
+
+  return Array.from(modelosEncontrados).join(" / ");
+}
+
+function extrairModelo(vaga) {
+  const modeloDasExtensoes = normalizarModelo(
+    (vaga.extensions || []).find((item) =>
+      /remot|hybrid|h[ií]brid|presencial/i.test(item)
+    )
+  );
+
+  if (modeloDasExtensoes) {
+    return modeloDasExtensoes;
+  }
+
+  const modeloDaDescricao = extrairModeloDaDescricao(vaga);
+
+  if (modeloDaDescricao) {
+    return modeloDaDescricao;
+  }
+
+  return "Nao informado";
+}
+
 async function buscarVagasGoogle() {
   if (!SERPAPI_KEY) {
     throw new Error("Defina a variavel SERPAPI_KEY para consultar o Google Jobs.");
@@ -187,12 +265,7 @@ async function buscarVagasGoogle() {
       titulo: normalizarTexto(vaga.title),
       empresa: normalizarTexto(vaga.company_name),
       local: normalizarTexto(vaga.location),
-      modelo: normalizarTexto(
-        (vaga.extensions || []).find((item) =>
-          /remoto|hybrid|hibrido|presencial/i.test(item)
-        ),
-        "Nao informado"
-      ),
+      modelo: extrairModelo(vaga),
       publicado: normalizarTexto(
         vaga.detected_extensions?.posted_at ||
           (vaga.extensions || []).find((item) => /ago|hora|dia|semana|mes/i.test(item)),
@@ -293,7 +366,7 @@ async function enviarTelegram(vaga) {
     disable_web_page_preview: true,
     reply_markup: {
       inline_keyboard: [
-        [{ text: "Candidatar-se", url: vaga.link }],
+        [{ text: "Ver vaga e candidatar-se", url: vaga.link }],
       ],
     },
   });

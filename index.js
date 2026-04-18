@@ -7,6 +7,7 @@ const SEARCH_QUERY =
   process.env.SEARCH_QUERY || "desenvolvedor de software brasil";
 const SEARCH_LOCATION = process.env.SEARCH_LOCATION || "Brazil";
 const MAX_JOBS = Number(process.env.MAX_JOBS || 5);
+const SHORTEN_URLS = process.env.SHORTEN_URLS !== "false";
 const TERMOS_BRASIL = [
   "brasil",
   "brazil",
@@ -165,6 +166,30 @@ async function buscarVagasGoogle() {
     }));
 }
 
+async function encurtarUrl(url) {
+  if (!SHORTEN_URLS || !url) {
+    return url;
+  }
+
+  try {
+    const { data } = await axios.get("https://is.gd/create.php", {
+      params: {
+        format: "simple",
+        url,
+      },
+      timeout: 10000,
+    });
+
+    if (typeof data === "string" && data.startsWith("https://")) {
+      return data.trim();
+    }
+  } catch (error) {
+    console.warn("Nao foi possivel encurtar a URL:", error.message);
+  }
+
+  return url;
+}
+
 function montarMensagem(vaga) {
   return [
     "<b>🚀 Vaga em TI no Brasil</b>",
@@ -203,6 +228,7 @@ async function run() {
   }
 
   for (const vaga of vagas) {
+    vaga.link = await encurtarUrl(vaga.link);
     await enviarTelegram(montarMensagem(vaga));
   }
 }

@@ -21,6 +21,14 @@ jobs:
 
       - run: npm install axios
 
+      - name: Restore dedup cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache/posted-jobs.json
+          key: posted-jobs-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: |
+            posted-jobs-${{ github.ref_name }}-
+
       - name: Validate secrets
         run: |
           test -n "$BOT_TOKEN" || { echo "BOT_TOKEN nao configurado"; exit 1; }
@@ -40,4 +48,13 @@ jobs:
           SEARCH_QUERY: "desenvolvedor de software brasil"
           SEARCH_LOCATION: "Brazil"
           MAX_JOBS: "5"
+          MAX_HISTORY: "500"
           SHORTEN_URLS: "true"
+          STATE_FILE: ".cache/posted-jobs.json"
+
+      - name: Save dedup cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .cache/posted-jobs.json
+          key: posted-jobs-${{ github.ref_name }}-${{ github.run_id }}

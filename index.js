@@ -1,4 +1,6 @@
 const axios = require("axios");
+const fs = require("fs/promises");
+const path = require("path");
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const CHAT_ID = process.env.CHAT_ID;
@@ -7,7 +9,10 @@ const SEARCH_QUERY =
   process.env.SEARCH_QUERY || "desenvolvedor de software brasil";
 const SEARCH_LOCATION = process.env.SEARCH_LOCATION || "Brazil";
 const MAX_JOBS = Number(process.env.MAX_JOBS || 5);
+const MAX_HISTORY = Number(process.env.MAX_HISTORY || 500);
 const SHORTEN_URLS = process.env.SHORTEN_URLS !== "false";
+const STATE_FILE =
+  process.env.STATE_FILE || path.join(".cache", "posted-jobs.json");
 const TERMOS_BRASIL = [
   "brasil",
   "brazil",
@@ -80,6 +85,15 @@ function normalizarTexto(value, fallback = "Nao informado") {
   return String(value).trim();
 }
 
+function slug(value = "") {
+  return String(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 function vagaEhDoBrasil(vaga) {
   const texto = [
     vaga.location,
@@ -122,6 +136,21 @@ function extrairLink(vaga, fallback) {
   return fallback;
 }
 
+function gerarFingerprint(vaga) {
+  const partes = [
+    vaga.job_id,
+    vaga.title,
+    vaga.company_name,
+    vaga.location,
+    vaga.share_link,
+  ]
+    .filter(Boolean)
+    .map(slug)
+    .filter(Boolean);
+
+  return partes.join("|");
+}
+
 async function buscarVagasGoogle() {
   if (!SERPAPI_KEY) {
     throw new Error("Defina a variavel SERPAPI_KEY para consultar o Google Jobs.");
@@ -146,8 +175,8 @@ async function buscarVagasGoogle() {
 
   return vagas
     .filter(vagaEhDoBrasil)
-    .slice(0, MAX_JOBS)
     .map((vaga) => ({
+      id: gerarFingerprint(vaga),
       titulo: normalizarTexto(vaga.title),
       empresa: normalizarTexto(vaga.company_name),
       local: normalizarTexto(vaga.location),
@@ -164,6 +193,39 @@ async function buscarVagasGoogle() {
       ),
       link: extrairLink(vaga, googleJobsUrl),
     }));
+}
+
+async function carregarHistorico() {
+  try {
+    const conteudo = await fs.readFile(STATE_FILE, "utf8");
+    const parsed = JSON.parse(conteudo);
+
+    if (Array.isArray(parsed.ids)) {
+      return new Set(parsed.ids.filter(Boolean));
+    }
+  } catch (error) {
+    if (error.code !== "ENOENT") {
+      console.warn("Nao foi possivel ler o historico:", error.message);
+    }
+  }
+
+  return new Set();
+}
+
+async function salvarHistorico(ids) {
+  const diretorio = path.dirname(STATE_FILE);
+  await fs.mkdir(diretorio, { recursive: true });
+
+  const payload = {
+    ids: Array.from(ids).slice(-MAX_HISTORY),
+    updated_at: new Date().toISOString(),
+  };
+
+  await fs.writeFile(STATE_FILE, JSON.stringify(payload, null, 2));
+}
+
+function filtrarVagasNovas(vagas, historico) {
+  return vagas.filter((vaga) => vaga.id && !historico.has(vaga.id)).slice(0, MAX_JOBS);
 }
 
 async function encurtarUrl(url) {
@@ -220,17 +282,29 @@ async function run() {
     throw new Error("Defina BOT_TOKEN e CHAT_ID antes de executar o bot.");
   }
 
+  const historico = await carregarHistorico();
   const vagas = await buscarVagasGoogle();
+  const vagasNovas = filtrarVagasNovas(vagas, historico);
 
   if (vagas.length === 0) {
+    await salvarHistorico(historico);
     console.log("Nenhuma vaga do Brasil encontrada para a busca atual.");
     return;
   }
 
-  for (const vaga of vagas) {
+  if (vagasNovas.length === 0) {
+    await salvarHistorico(historico);
+    console.log("Nenhuma vaga nova encontrada. Nada sera publicado.");
+    return;
+  }
+
+  for (const vaga of vagasNovas) {
     vaga.link = await encurtarUrl(vaga.link);
     await enviarTelegram(montarMensagem(vaga));
+    historico.add(vaga.id);
   }
+
+  await salvarHistorico(historico);
 }
 
 run().catch((error) => {

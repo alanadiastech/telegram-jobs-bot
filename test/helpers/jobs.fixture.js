@@ -41,8 +41,36 @@ const hybridJob = {
   job_id: "hybrid-job-id",
 };
 
+const remoteJuniorJob = {
+  title: "Desenvolvedor(a) Java Junior",
+  company_name: "Tech Remota",
+  location: "Brasil",
+  share_link: "https://www.google.com/jobs/remote-jr",
+  extensions: ["há 1 dia", "Remoto"],
+  detected_extensions: {
+    posted_at: "há 1 dia",
+  },
+  description: "Vaga remota para pessoa desenvolvedora junior no Brasil.",
+  job_id: "remote-junior-job-id",
+};
+
+const seniorRemoteJob = {
+  title: "Desenvolvedor(a) Backend Senior",
+  company_name: "Remote Corp",
+  location: "Brasil",
+  share_link: "https://www.google.com/jobs/remote-senior",
+  extensions: ["há 2 dias", "Remoto"],
+  detected_extensions: {
+    posted_at: "há 2 dias",
+  },
+  description: "Atuacao remota para backend senior.",
+  job_id: "remote-senior-job-id",
+};
+
 module.exports = {
   hybridJob,
+  remoteJuniorJob,
   sankhyaJob,
+  seniorRemoteJob,
   usJob,
 };

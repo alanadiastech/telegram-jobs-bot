@@ -134,7 +134,7 @@ test("run envia vagas e registra historico uma a uma", async () => {
       filtrarVagasNovasFn: (vagas) => vagas,
       encurtarUrlFn: async () => "https://encurtada.com",
       enviarTelegramFn: async (job) => chamadas.push(`envio:${job.link}`),
-      registrarVagaPublicadaFn: async (id) => chamadas.push(`registro:${id}`),
+      registrarVagaPublicadaFn: async (item) => chamadas.push(`registro:${item.id}`),
     }
   );
 
@@ -178,7 +178,7 @@ test("run publica cursos gratuitos em fluxo separado", async () => {
       filtrarVagasNovasFn: (itens) => itens,
       encurtarUrlFn: async (link) => `${link}/short`,
       enviarTelegramFn: async (item) => chamadas.push(`envio:${item.id}:${item.link}`),
-      registrarVagaPublicadaFn: async (id) => chamadas.push(`registro:${id}`),
+      registrarVagaPublicadaFn: async (item) => chamadas.push(`registro:${item.id}`),
     }
   );
 
@@ -226,7 +226,7 @@ test("run publica vagas em fluxo separado sem consultar cursos", async () => {
       filtrarVagasNovasFn: (itens) => itens,
       encurtarUrlFn: async (link) => `${link}/short`,
       enviarTelegramFn: async (item) => chamadas.push(`envio:${item.id}:${item.link}`),
-      registrarVagaPublicadaFn: async (id) => chamadas.push(`registro:${id}`),
+      registrarVagaPublicadaFn: async (item) => chamadas.push(`registro:${item.id}`),
     }
   );
 

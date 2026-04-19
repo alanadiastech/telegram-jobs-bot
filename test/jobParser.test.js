@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 const {
   calcularPrioridade,
   extrairSenioridade,
+  gerarChavesDedupe,
   parseJob,
   vagaEhDoBrasil,
 } = require("../src/parsers/jobParser");
@@ -46,6 +47,27 @@ test("parseJob gera link a partir do share_link quando disponivel", () => {
   const parsed = parseJob(hybridJob, context);
 
   assert.equal(parsed.link, hybridJob.share_link);
+});
+
+test("parseJob gera chaves estaveis para deduplicacao", () => {
+  const parsed = parseJob(hybridJob, context);
+
+  assert.equal(parsed.dedupeKeys.includes(parsed.id), true);
+  assert.equal(
+    parsed.dedupeKeys.includes("vaga|pessoa-desenvolvedora-backend|empresa-xpto"),
+    true
+  );
+});
+
+test("gerarChavesDedupe remove chaves vazias e repetidas", () => {
+  const resultado = gerarChavesDedupe({
+    id: "vaga-1",
+    titulo: "",
+    empresa: "",
+    local: "",
+  });
+
+  assert.deepEqual(resultado, ["vaga-1"]);
 });
 
 test("extrairSenioridade reconhece vagas junior", () => {

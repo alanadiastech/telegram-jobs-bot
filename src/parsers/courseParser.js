@@ -20,7 +20,7 @@ function gerarFingerprintCurso(resultado) {
 }
 
 function parseCourse(resultado) {
-  return {
+  const curso = {
     id: gerarFingerprintCurso(resultado),
     tipo: "curso",
     titulo: normalizarTexto(resultado.title),
@@ -34,6 +34,10 @@ function parseCourse(resultado) {
     ),
     link: extrairLinkCurso(resultado),
   };
+
+  curso.dedupeKeys = [curso.id].filter(Boolean);
+
+  return curso;
 }
 
 module.exports = {

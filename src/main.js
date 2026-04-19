@@ -84,7 +84,7 @@ async function run(env = process.env, deps = {}) {
 
   for (const item of itensNovos) {
     await enviarTelegramFn(item, config);
-    await registrarVagaPublicadaFn(item.id, historico, config);
+    await registrarVagaPublicadaFn(item, historico, config);
   }
 }
 

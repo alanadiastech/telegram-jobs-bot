@@ -121,6 +121,26 @@ function gerarFingerprint(vaga) {
   return partes.join("|");
 }
 
+function gerarChavesDedupe(parsedJob) {
+  const tituloSlug = slug(parsedJob.titulo);
+  const empresaSlug = slug(parsedJob.empresa);
+  const localSlug = slug(parsedJob.local);
+  const chaves = [parsedJob.id];
+
+  if (tituloSlug && empresaSlug) {
+    chaves.push(["vaga", tituloSlug, empresaSlug].join("|"));
+  }
+
+  if (tituloSlug && empresaSlug && localSlug) {
+    chaves.push(["vaga", tituloSlug, empresaSlug, localSlug]
+      .map(slug)
+      .filter(Boolean)
+      .join("|"));
+  }
+
+  return Array.from(new Set(chaves.filter(Boolean)));
+}
+
 function extrairModeloDaDescricao(vaga) {
   const descricao = normalizarTexto(vaga.description, "");
 
@@ -239,6 +259,7 @@ function parseJob(vaga, context) {
     link: extrairLink(vaga, context.googleJobsUrl, context.searchQuery),
   };
 
+  parsedJob.dedupeKeys = gerarChavesDedupe(parsedJob);
   parsedJob.prioridade = calcularPrioridade(parsedJob);
 
   return parsedJob;
@@ -246,6 +267,7 @@ function parseJob(vaga, context) {
 
 module.exports = {
   calcularPrioridade,
+  gerarChavesDedupe,
   extrairSenioridade,
   parseJob,
   vagaEhDoBrasil,
